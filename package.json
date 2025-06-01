@@ -1,0 +1,42 @@
+{
+	"name": "@asunalabs/track-react-sdk",
+	"version": "1.0.0",
+	"description": "React provider and hooks for EngageTrack analytics",
+	"main": "dist/index.js",
+	"module": "dist/index.esm.js",
+	"types": "dist/index.d.ts",
+	"type": "module",
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "rollup -c",
+		"dev": "rollup -c -w",
+		"test": "jest",
+		"lint": "eslint src --ext .ts,.tsx",
+		"prepare": "npm run build"
+	},
+	"keywords": [
+		"react",
+		"analytics",
+		"tracking",
+		"engagetrack"
+	],
+	"author": "",
+	"license": "MIT",
+	"peerDependencies": {
+		"react": ">=16.8.0",
+		"react-dom": ">=16.8.0"
+	},
+	"devDependencies": {
+		"@rollup/plugin-commonjs": "^25.0.7",
+		"@rollup/plugin-node-resolve": "^15.2.3",
+		"@rollup/plugin-typescript": "^11.1.5",
+		"@types/react": "^18.2.43",
+		"@types/react-dom": "^18.2.17",
+		"rollup": "^4.9.1",
+		"rollup-plugin-dts": "^6.1.0",
+		"tslib": "^2.8.1",
+		"typescript": "^5.3.3"
+	}
+}
