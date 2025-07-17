@@ -1,18 +1,6 @@
 export interface EngageTrackConfig {
     siteId: string;
     domain: string;
-    serverUrl?: string;
-    wsUrl?: string;
-    idleTimeout?: number;
-    checkInterval?: number;
-    heartbeatInterval?: number;
-    maxReconnectAttempts?: number;
-    enableWebSocket?: boolean;
-    enableAutoTracking?: boolean;
-    enableReferralTracking?: boolean;
-    cookieDomain?: string;
-    cookieExpiry?: number;
-    debug?: boolean;
 }
 export interface TrackingData {
     [key: string]: any;

@@ -17,9 +17,9 @@ A comprehensive React SDK for EngageTrack analytics and user tracking. This pack
 ## Installation
 
 ```bash
-npm install @engagetrack/react
+npm install @asunalabs/tracker-sdk
 # or
-yarn add @engagetrack/react
+yarn add @asunalabs/tracker-sdk
 ```
 
 ## Basic Usage
@@ -28,7 +28,17 @@ yarn add @engagetrack/react
 
 ```tsx
 import React from "react";
-import { useEngageTrack, EngageTrackConfig } from "@engagetrack/react";
+import { useEngageTrack, EngageTrackConfig } from "@asunalabs/tracker-sdk";
+
+const config: EngageTrackConfig = {
+	siteId: "your-site-id",
+	domain: "your-domain.com",
+};
+```
+
+```tsx
+import React from "react";
+import { useEngageTrack, EngageTrackConfig } from "@asunalabs/tracker-sdk";
 
 const config: EngageTrackConfig = {
 	siteId: "your-site-id",
@@ -54,7 +64,7 @@ function App() {
 ### 2. Track custom events
 
 ```tsx
-import { useEngageTrack } from "@engagetrack/react";
+import { useEngageTrack } from "@asunalabs/tracker-sdk";
 
 function MyComponent() {
 	const { track } = useEngageTrack(config);
@@ -74,7 +84,7 @@ function MyComponent() {
 ### 3. Track referral conversions
 
 ```tsx
-import { useEngageTrack } from "@engagetrack/react";
+import { useEngageTrack } from "@asunalabs/tracker-sdk";
 
 function SignupForm() {
 	const { trackReferralConversion } = useEngageTrack(config);
@@ -166,7 +176,7 @@ track("page_view", { customData: "value" });
 
 ```tsx
 // pages/_app.tsx
-import { useEngageTrack } from "@engagetrack/react";
+import { useEngageTrack } from "@asunalabs/tracker-sdk";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 
@@ -337,6 +347,6 @@ MIT License - see LICENSE file for details
 
 For issues and questions:
 
-- GitHub Issues: [github.com/engagetrack/react-sdk/issues](https://github.com/engagetrack/react-sdk/issues)
-- Documentation: [docs.engagetrack.com](https://docs.engagetrack.com)
+- GitHub Issues: [github.com/asunalabs/tracker-sdk/issues](https://github.com/asunalabs/tracker-sdk/issues)
+- Documentation: [docs.asunalabs.com](https://docs.asunalabs.com/engagetrack)
 - Email: support@asunalabs.com

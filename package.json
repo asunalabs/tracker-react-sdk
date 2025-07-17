@@ -1,11 +1,12 @@
 {
-	"name": "@engagetrack/react",
+	"name": "@asunalabs/tracker-sdk",
 	"version": "1.0.0",
 	"description": "React SDK for EngageTrack analytics and user tracking",
 	"type": "module",
 	"main": "dist/index.js",
 	"module": "dist/index.esm.js",
 	"types": "dist/index.d.ts",
+	"private": false,
 	"files": [
 		"dist/**/*",
 		"README.md",
