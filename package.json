@@ -33,21 +33,20 @@
 		"realtime",
 		"websocket"
 	],
-	"author": "EngageTrack",
+	"author": "Asunalabs",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/engagetrack/react-sdk.git"
+		"url": "git+https://github.com/asunalabs/tracker-react-sdk.git"
 	},
 	"bugs": {
-		"url": "https://github.com/engagetrack/react-sdk/issues"
+		"url": "https://github.com/asunalabs/tracker-react-sdk/issues"
 	},
-	"homepage": "https://github.com/engagetrack/react-sdk#readme",
+	"homepage": "https://github.com/asunalabs/tracker-react-sdk#readme",
 	"peerDependencies": {
-		"react": ">=16.8.0",
-		"react-dom": ">=16.8.0"
+		"react": ">=18.3.1",
+		"react-dom": ">=18.3.1"
 	},
-	"dependencies": {},
 	"devDependencies": {
 		"@babel/core": "^7.22.0",
 		"@babel/preset-env": "^7.22.0",
@@ -59,8 +58,7 @@
 		"@rollup/plugin-terser": "^0.4.0",
 		"@rollup/plugin-typescript": "^11.0.0",
 		"@testing-library/jest-dom": "^5.16.0",
-		"@testing-library/react": "^13.4.0",
-		"@testing-library/react-hooks": "^8.0.0",
+		"@testing-library/react": "^14.0.0",
 		"@types/jest": "^29.5.0",
 		"@types/react": "^18.2.0",
 		"@types/react-dom": "^18.2.0",
@@ -75,6 +73,8 @@
 		"react-dom": "^18.2.0",
 		"rollup": "^3.25.0",
 		"rollup-plugin-peer-deps-external": "^2.2.4",
+		"ts-jest": "^29.4.0",
+		"tslib": "^2.8.1",
 		"typescript": "^5.0.0"
 	}
 }

@@ -1,0 +1,27 @@
+import { ReferralData, ReferralSource } from "./types";
+export declare const DEFAULT_CONFIG: {
+    serverUrl: string;
+    wsUrl: string;
+    idleTimeout: number;
+    checkInterval: number;
+    heartbeatInterval: number;
+    maxReconnectAttempts: number;
+    enableWebSocket: boolean;
+    enableAutoTracking: boolean;
+    enableReferralTracking: boolean;
+    cookieExpiry: number;
+    debug: boolean;
+};
+export declare const REFERRAL_COOKIE_NAME = "engage_referral";
+export declare const SESSION_COOKIE_NAME = "session_id";
+export declare const USER_COOKIE_NAME = "user_id";
+export declare function generateId(): string;
+export declare function setCookie(name: string, value: string, days?: number, domain?: string): string;
+export declare function getCookie(name: string): string | undefined;
+export declare function deleteCookie(name: string, domain?: string): void;
+export declare function parseReferralParams(): Record<string, string>;
+export declare function detectReferralSource(): ReferralSource | null;
+export declare function getReferralData(): ReferralData | null;
+export declare function isLocalStorageAvailable(): boolean;
+export declare function debounce<T extends (...args: any[]) => void>(func: T, wait: number): (...args: Parameters<T>) => void;
+export declare function throttle<T extends (...args: any[]) => void>(func: T, limit: number): (...args: Parameters<T>) => void;
