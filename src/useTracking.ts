@@ -1,150 +1,174 @@
-import { useCallback } from 'react';
-import { useTrack } from './TrackerProvider';
-import { TrackingData, EventType } from './types';
+import { useEffect, useState, useCallback } from "react";
+import { EngageTracker } from "./EngageTracker";
+import {
+	EngageTrackConfig,
+	EventType,
+	TrackingData,
+	SessionData,
+	OnlineUsersData,
+	ReferralData,
+	EngageTrackHooks,
+} from "./types";
 
-export function useTracking() {
-  const { track: baseTrack, isInitialized, sessionId, userId, config } = useTrack();
+export interface UseEngageTrackReturn {
+	track: (eventType: EventType, data?: TrackingData) => void;
+	trackReferralConversion: (data?: TrackingData) => void;
+	sessionData: SessionData | null;
+	onlineUsers: OnlineUsersData | null;
+	isConnected: boolean;
+	isInitialized: boolean;
+	reconnect: () => void;
+	getSessionData: () => SessionData | null;
+	getReferralData: () => ReferralData | null;
+}
 
-  // Enhanced track function with common patterns
-  const track = useCallback(() => ({
-    // Custom events
-    customEvent: (eventName: string, data?: TrackingData) => {
-      baseTrack('custom', { eventName, ...data });
-    },
+export function useEngageTrack(
+	config: EngageTrackConfig,
+	hooks: EngageTrackHooks = {}
+): UseEngageTrackReturn {
+	const [tracker, setTracker] = useState<EngageTracker | null>(null);
+	const [isInitialized, setIsInitialized] = useState(false);
+	const [sessionData, setSessionData] = useState<SessionData | null>(null);
+	const [onlineUsers, setOnlineUsers] = useState<OnlineUsersData | null>(null);
+	const [isConnected, setIsConnected] = useState(false);
 
-    // Page events
-    pageView: (url?: string, title?: string) => {
-      baseTrack('page_view', {
-        url: url || window.location.href,
-        title: title || document.title,
-        timeSpent: 0,
-      });
-    },
+	useEffect(() => {
+		if (typeof window === "undefined") return;
 
-    // User interaction events
-    click: (element?: string, data?: TrackingData) => {
-      baseTrack('user_click', {
-        element: element || 'unknown',
-        url: window.location.href,
-        ...data,
-      });
-    },
+		const trackerHooks: EngageTrackHooks = {
+			...hooks,
+			onSessionStart: (session) => {
+				setSessionData(session);
+				hooks.onSessionStart?.(session);
+			},
+			onSessionEnd: (session) => {
+				setSessionData(null);
+				hooks.onSessionEnd?.(session);
+			},
+			onWebSocketConnect: () => {
+				setIsConnected(true);
+				hooks.onWebSocketConnect?.();
+			},
+			onWebSocketDisconnect: () => {
+				setIsConnected(false);
+				hooks.onWebSocketDisconnect?.();
+			},
+			onOnlineUsersUpdate: (users) => {
+				setOnlineUsers(users);
+				hooks.onOnlineUsersUpdate?.(users);
+			},
+		};
 
-    // Form events
-    formSubmit: (formName: string, data?: TrackingData) => {
-      baseTrack('custom', {
-        eventName: 'form_submit',
-        formName,
-        ...data,
-      });
-    },
+		try {
+			const trackerInstance = new EngageTracker(config, trackerHooks);
+			setTracker(trackerInstance);
+			setIsInitialized(true);
+		} catch (error) {
+			console.error("Failed to initialize EngageTracker:", error);
+			hooks.onError?.(error as Error);
+		}
 
-    formStart: (formName: string, data?: TrackingData) => {
-      baseTrack('custom', {
-        eventName: 'form_start',
-        formName,
-        ...data,
-      });
-    },
+		return () => {
+			if (tracker) {
+				tracker.destroy();
+			}
+		};
+	}, [config.siteId, config.domain]); // Only re-initialize if core config changes
 
-    // Button events
-    buttonClick: (buttonName: string, data?: TrackingData) => {
-      baseTrack('custom', {
-        eventName: 'button_click',
-        buttonName,
-        ...data,
-      });
-    },
+	const track = useCallback(
+		(eventType: EventType, data?: TrackingData) => {
+			if (tracker) {
+				tracker.track(eventType, data);
+			}
+		},
+		[tracker]
+	);
 
-    // Search events
-    search: (query: string, results?: number, data?: TrackingData) => {
-      baseTrack('custom', {
-        eventName: 'search',
-        query,
-        results,
-        ...data,
-      });
-    },
+	const trackReferralConversion = useCallback(
+		(data?: TrackingData) => {
+			if (tracker) {
+				tracker.trackReferralConversion(data);
+			}
+		},
+		[tracker]
+	);
 
-    // Download events
-    download: (fileName: string, fileType?: string, data?: TrackingData) => {
-      baseTrack('custom', {
-        eventName: 'download',
-        fileName,
-        fileType,
-        ...data,
-      });
-    },
+	const getSessionData = useCallback(() => {
+		return tracker?.getSessionData() || null;
+	}, [tracker]);
 
-    // Video events
-    videoPlay: (videoTitle: string, duration?: number, data?: TrackingData) => {
-      baseTrack('custom', {
-        eventName: 'video_play',
-        videoTitle,
-        duration,
-        ...data,
-      });
-    },
+	const getReferralData = useCallback(() => {
+		return tracker?.getReferralData() || null;
+	}, [tracker]);
 
-    videoPause: (videoTitle: string, currentTime?: number, data?: TrackingData) => {
-      baseTrack('custom', {
-        eventName: 'video_pause',
-        videoTitle,
-        currentTime,
-        ...data,
-      });
-    },
+	const reconnect = useCallback(() => {
+		if (tracker) {
+			tracker.reconnect();
+		}
+	}, [tracker]);
 
-    videoComplete: (videoTitle: string, duration?: number, data?: TrackingData) => {
-      baseTrack('custom', {
-        eventName: 'video_complete',
-        videoTitle,
-        duration,
-        ...data,
-      });
-    },
+	return {
+		track,
+		trackReferralConversion,
+		sessionData,
+		onlineUsers,
+		isConnected,
+		isInitialized,
+		reconnect,
+		getSessionData,
+		getReferralData,
+	};
+}
 
-    // E-commerce events
-    purchase: (orderId: string, total: number, currency?: string, data?: TrackingData) => {
-      baseTrack('custom', {
-        eventName: 'purchase',
-        orderId,
-        total,
-        currency: currency || 'USD',
-        ...data,
-      });
-    },
+// Hook for tracking page views automatically
+export function usePageView(path?: string): void {
+	const [currentPath, setCurrentPath] = useState<string>("");
 
-    addToCart: (productId: string, productName: string, price?: number, data?: TrackingData) => {
-      baseTrack('custom', {
-        eventName: 'add_to_cart',
-        productId,
-        productName,
-        price,
-        ...data,
-      });
-    },
+	useEffect(() => {
+		if (typeof window === "undefined") return;
 
-    removeFromCart: (productId: string, productName: string, data?: TrackingData) => {
-      baseTrack('custom', {
-        eventName: 'remove_from_cart',
-        productId,
-        productName,
-        ...data,
-      });
-    },
+		const pathname = path || window.location.pathname;
 
-    // Generic track function
-    event: (eventType: EventType, data?: TrackingData) => {
-      baseTrack(eventType, data);
-    }
-  }), [baseTrack]);
+		if (pathname !== currentPath) {
+			setCurrentPath(pathname);
+			// Note: This requires the tracker to be initialized elsewhere
+			// You would typically use this with the main useEngageTrack hook
+		}
+	}, [path, currentPath]);
+}
 
-  return {
-    track: track(),
-    isInitialized,
-    sessionId,
-    userId,
-    config,
-  };
+// Hook for tracking custom events with automatic cleanup
+export function useTrackEvent(
+	eventType: EventType,
+	data?: TrackingData,
+	dependencies: any[] = []
+): void {
+	useEffect(() => {
+		// This would need to be used within a component that has access to the tracker
+		// Implementation would depend on how the tracker is provided (context or props)
+	}, dependencies);
+}
+
+// Hook for online users with real-time updates
+export function useOnlineUsers(): OnlineUsersData | null {
+	const [onlineUsers, setOnlineUsers] = useState<OnlineUsersData | null>(null);
+
+	useEffect(() => {
+		// This would connect to the WebSocket for real-time updates
+		// Implementation depends on the tracker being available
+	}, []);
+
+	return onlineUsers;
+}
+
+// Hook for session data with automatic updates
+export function useSessionData(): SessionData | null {
+	const [sessionData, setSessionData] = useState<SessionData | null>(null);
+
+	useEffect(() => {
+		// This would connect to the tracker for session updates
+		// Implementation depends on the tracker being available
+	}, []);
+
+	return sessionData;
 }

@@ -1,133 +1,203 @@
-import React from 'react';
-import { TrackerProvider, useTracking } from '@engagetrack/react';
+import React, { useState, useCallback } from "react";
+import {
+	useEngageTrack,
+	EngageTrackConfig,
+	EventType,
+	TrackingData,
+} from "@engagetrack/react";
 
-// Example component that uses tracking
-function ExampleComponent() {
-  const { track, isInitialized, sessionId, userId } = useTracking();
+const config: EngageTrackConfig = {
+	siteId: "your-site-id",
+	domain: "your-domain.com",
+	serverUrl: "http://localhost:5000/api/track",
+	wsUrl: "ws://localhost:5000/ws",
+	debug: true,
+	enableWebSocket: true,
+	enableAutoTracking: true,
+	enableReferralTracking: true,
+};
 
-  const handleButtonClick = () => {
-    track.buttonClick('hero-cta', {
-      section: 'homepage',
-      campaign: 'summer-sale'
-    });
-  };
+export default function App() {
+	const [eventLog, setEventLog] = useState<string[]>([]);
+	const [customEvent, setCustomEvent] = useState("");
+	const [customData, setCustomData] = useState("{}");
 
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    track.formSubmit('newsletter-signup', {
-      source: 'homepage'
-    });
-  };
+	const {
+		track,
+		trackReferralConversion,
+		sessionData,
+		onlineUsers,
+		isConnected,
+		isInitialized,
+		reconnect,
+		getSessionData,
+		getReferralData,
+	} = useEngageTrack(config, {
+		onTrackingEvent: (eventType, data) => {
+			setEventLog((prev) => [...prev, `${eventType}: ${JSON.stringify(data)}`]);
+		},
+		onSessionStart: (session) => {
+			console.log("Session started:", session);
+		},
+		onSessionEnd: (session) => {
+			console.log("Session ended:", session);
+		},
+		onWebSocketConnect: () => {
+			console.log("WebSocket connected");
+		},
+		onWebSocketDisconnect: () => {
+			console.log("WebSocket disconnected");
+		},
+		onOnlineUsersUpdate: (users) => {
+			console.log("Online users updated:", users);
+		},
+		onReferralConversion: (referralData) => {
+			console.log("Referral conversion:", referralData);
+		},
+		onError: (error) => {
+			console.error("EngageTrack error:", error);
+		},
+	});
 
-  const handleCustomEvent = () => {
-    track.customEvent('feature_used', {
-      featureName: 'advanced-search',
-      timestamp: Date.now()
-    });
-  };
+	const handleCustomEvent = useCallback(() => {
+		if (customEvent) {
+			let data: TrackingData = {};
+			try {
+				data = JSON.parse(customData);
+			} catch (error) {
+				console.error("Invalid JSON in custom data");
+				return;
+			}
+			track(customEvent as EventType, data);
+		}
+	}, [customEvent, customData, track]);
 
-  const handleVideoPlay = () => {
-    track.videoPlay('product-demo', 300);
-  };
+	const handleTrackReferral = useCallback(() => {
+		trackReferralConversion({ source: "manual_test" });
+	}, [trackReferralConversion]);
 
-  const handlePurchase = () => {
-    track.purchase('order-123', 99.99, 'USD', {
-      items: 2,
-      paymentMethod: 'credit-card'
-    });
-  };
+	const handleGetSessionData = useCallback(() => {
+		const session = getSessionData();
+		console.log("Current session data:", session);
+	}, [getSessionData]);
 
-  return (
-    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-      <h1>EngageTrack React Package Demo</h1>
-      
-      <div style={{ marginBottom: '20px' }}>
-        <h3>Tracking Status:</h3>
-        <p>Initialized: {isInitialized ? '✅' : '❌'}</p>
-        <p>Session ID: {sessionId || 'Not set'}</p>
-        <p>User ID: {userId || 'Not set'}</p>
-      </div>
+	const handleGetReferralData = useCallback(() => {
+		const referral = getReferralData();
+		console.log("Current referral data:", referral);
+	}, [getReferralData]);
 
-      <div style={{ marginBottom: '20px' }}>
-        <h3>Tracking Examples:</h3>
-        
-        <button 
-          onClick={handleButtonClick}
-          style={{ margin: '5px', padding: '10px 15px' }}
-        >
-          Track Button Click
-        </button>
+	return (
+		<div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
+			<h1>EngageTrack React SDK Demo</h1>
 
-        <button 
-          onClick={handleCustomEvent}
-          style={{ margin: '5px', padding: '10px 15px' }}
-        >
-          Track Custom Event
-        </button>
+			<div style={{ marginBottom: "20px" }}>
+				<h2>Status</h2>
+				<p>Initialized: {isInitialized ? "✅" : "❌"}</p>
+				<p>WebSocket Connected: {isConnected ? "🟢" : "🔴"}</p>
+				<p>Session ID: {sessionData?.sessionId || "None"}</p>
+				<p>User ID: {sessionData?.userId || "None"}</p>
+				<p>
+					Time Spent:{" "}
+					{sessionData?.timeSpent
+						? `${Math.floor(sessionData.timeSpent / 1000)}s`
+						: "0s"}
+				</p>
+				<p>Online Users: {onlineUsers?.count || 0}</p>
 
-        <button 
-          onClick={handleVideoPlay}
-          style={{ margin: '5px', padding: '10px 15px' }}
-        >
-          Track Video Play
-        </button>
+				<button onClick={reconnect} style={{ marginTop: "10px" }}>
+					Reconnect WebSocket
+				</button>
+			</div>
 
-        <button 
-          onClick={handlePurchase}
-          style={{ margin: '5px', padding: '10px 15px' }}
-        >
-          Track Purchase
-        </button>
-      </div>
+			<div style={{ marginBottom: "20px" }}>
+				<h2>Quick Actions</h2>
+				<button
+					onClick={() => track("page_view")}
+					style={{ marginRight: "10px" }}
+				>
+					Track Page View
+				</button>
+				<button
+					onClick={() => track("user_click", { element: "demo-button" })}
+					style={{ marginRight: "10px" }}
+				>
+					Track Click
+				</button>
+				<button onClick={handleTrackReferral} style={{ marginRight: "10px" }}>
+					Track Referral
+				</button>
+				<button onClick={handleGetSessionData} style={{ marginRight: "10px" }}>
+					Get Session Data
+				</button>
+				<button onClick={handleGetReferralData}>Get Referral Data</button>
+			</div>
 
-      <div style={{ marginBottom: '20px' }}>
-        <h3>Form Example:</h3>
-        <form onSubmit={handleFormSubmit}>
-          <input 
-            type="email" 
-            placeholder="Enter your email"
-            style={{ padding: '10px', marginRight: '10px' }}
-          />
-          <button 
-            type="submit"
-            style={{ padding: '10px 15px' }}
-          >
-            Subscribe (Track Form Submit)
-          </button>
-        </form>
-      </div>
+			<div style={{ marginBottom: "20px" }}>
+				<h2>Custom Event</h2>
+				<div style={{ marginBottom: "10px" }}>
+					<input
+						type="text"
+						placeholder="Event type (e.g., custom_event)"
+						value={customEvent}
+						onChange={(e) => setCustomEvent(e.target.value)}
+						style={{ marginRight: "10px", padding: "5px" }}
+					/>
+					<input
+						type="text"
+						placeholder="Custom data (JSON)"
+						value={customData}
+						onChange={(e) => setCustomData(e.target.value)}
+						style={{ padding: "5px", width: "200px" }}
+					/>
+					<button onClick={handleCustomEvent} style={{ marginLeft: "10px" }}>
+						Track Custom Event
+					</button>
+				</div>
+			</div>
 
-      <div>
-        <h3>Search Example:</h3>
-        <input 
-          type="text" 
-          placeholder="Search..."
-          onChange={(e) => {
-            if (e.target.value.length > 2) {
-              track.search(e.target.value, Math.floor(Math.random() * 50), {
-                category: 'documentation'
-              });
-            }
-          }}
-          style={{ padding: '10px', width: '200px' }}
-        />
-      </div>
-    </div>
-  );
+			<div style={{ marginBottom: "20px" }}>
+				<h2>Event Log</h2>
+				<div
+					style={{
+						height: "200px",
+						overflow: "auto",
+						border: "1px solid #ccc",
+						padding: "10px",
+						backgroundColor: "#f9f9f9",
+					}}
+				>
+					{eventLog.map((log, index) => (
+						<div key={index} style={{ marginBottom: "5px", fontSize: "12px" }}>
+							{log}
+						</div>
+					))}
+				</div>
+				<button onClick={() => setEventLog([])} style={{ marginTop: "10px" }}>
+					Clear Log
+				</button>
+			</div>
+
+			<div>
+				<h2>Test Links</h2>
+				<p>Click these links to test automatic link tracking:</p>
+				<a href="/test-page" style={{ display: "block", marginBottom: "5px" }}>
+					Internal Link
+				</a>
+				<a
+					href="https://example.com"
+					target="_blank"
+					rel="noopener noreferrer"
+					style={{ display: "block", marginBottom: "5px" }}
+				>
+					External Link
+				</a>
+				<a
+					href="mailto:test@example.com"
+					style={{ display: "block", marginBottom: "5px" }}
+				>
+					Email Link
+				</a>
+			</div>
+		</div>
+	);
 }
-
-// Main App component with TrackerProvider
-function App() {
-  return (
-    <TrackerProvider
-      siteId="demo-site-123"
-      domain="localhost"
-      serverUrl="http://localhost:5000/api/track"
-      autoTrack={true}
-    >
-      <ExampleComponent />
-    </TrackerProvider>
-  );
-}
-
-export default App;

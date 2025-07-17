@@ -1,247 +1,360 @@
-# @engagetrack/react
+# EngageTrack React SDK
 
-A React provider and hooks package for EngageTrack analytics that provides a clean, type-safe way to integrate tracking into React applications.
+A comprehensive React SDK for EngageTrack analytics and user tracking. This package provides the same functionality as the vanilla JavaScript SDK but with React-specific hooks and components for seamless integration.
+
+## Features
+
+- 🚀 **Easy Integration**: Simple React hooks for tracking
+- 📊 **Real-time Analytics**: WebSocket support for live data
+- 🔗 **Automatic Link Tracking**: Captures user interactions automatically
+- 📈 **Referral Tracking**: Built-in referral and UTM parameter tracking
+- 🎯 **Custom Events**: Track any custom event with additional data
+- 🔒 **Privacy Friendly**: Respects user privacy with configurable options
+- 💻 **TypeScript Support**: Full TypeScript definitions included
+- 🌐 **Universal**: Works with SSR/Next.js
+- 📱 **Mobile Friendly**: Optimized for mobile devices
 
 ## Installation
 
 ```bash
 npm install @engagetrack/react
+# or
+yarn add @engagetrack/react
 ```
 
-## Quick Start
+## Basic Usage
 
-### 1. Wrap your app with TrackerProvider
+### 1. Initialize the tracker
 
 ```tsx
-import React from 'react';
-import { TrackerProvider } from '@engagetrack/react';
+import React from "react";
+import { useEngageTrack, EngageTrackConfig } from "@engagetrack/react";
+
+const config: EngageTrackConfig = {
+	siteId: "your-site-id",
+	domain: "your-domain.com",
+	serverUrl: "http://localhost:5000/api/track",
+	enableWebSocket: true,
+	enableAutoTracking: true,
+	enableReferralTracking: true,
+};
 
 function App() {
-  return (
-    <TrackerProvider 
-      siteId="your-site-id" 
-      domain="yourdomain.com"
-      serverUrl="https://your-analytics-server.com/api/track"
-    >
-      <YourAppContent />
-    </TrackerProvider>
-  );
+	const { track, sessionData, onlineUsers } = useEngageTrack(config);
+
+	return (
+		<div>
+			<h1>My App</h1>
+			<p>Session ID: {sessionData?.sessionId}</p>
+			<p>Online Users: {onlineUsers?.count || 0}</p>
+			<button onClick={() => track("custom_event", { action: "button_click" })}>
+				Track Custom Event
+			</button>
+		</div>
+	);
 }
 ```
 
-### 2. Use tracking in your components
+### 2. Track custom events
 
 ```tsx
-import React from 'react';
-import { useTracking } from '@engagetrack/react';
+import { useEngageTrack } from "@engagetrack/react";
 
 function MyComponent() {
-  const { track } = useTracking();
+	const { track } = useEngageTrack(config);
 
-  const handleButtonClick = () => {
-    track.buttonClick('hero-cta', {
-      section: 'homepage',
-      campaign: 'summer-sale'
-    });
-  };
+	const handlePurchase = () => {
+		track("purchase", {
+			amount: 99.99,
+			currency: "USD",
+			productId: "prod-123",
+		});
+	};
 
-  const handleFormSubmit = (formData) => {
-    track.formSubmit('newsletter-signup', {
-      email: formData.email,
-      source: 'homepage'
-    });
-  };
-
-  return (
-    <div>
-      <button onClick={handleButtonClick}>
-        Sign Up Now
-      </button>
-      
-      <form onSubmit={handleFormSubmit}>
-        {/* form content */}
-      </form>
-    </div>
-  );
+	return <button onClick={handlePurchase}>Buy Now</button>;
 }
 ```
 
-## API Reference
-
-### TrackerProvider Props
-
-| Prop | Type | Required | Default | Description |
-|------|------|----------|---------|-------------|
-| `siteId` | `string` | ✅ | - | Your unique site identifier |
-| `domain` | `string` | ❌ | - | Domain for cookie setting |
-| `serverUrl` | `string` | ❌ | `"http://localhost:5000/api/track"` | Analytics server URL |
-| `disabled` | `boolean` | ❌ | `false` | Disable tracking entirely |
-| `autoTrack` | `boolean` | ❌ | `true` | Enable automatic page view and interaction tracking |
-
-### useTracking Hook
-
-The `useTracking` hook provides convenient methods for common tracking scenarios:
-
-#### Basic Usage
+### 3. Track referral conversions
 
 ```tsx
-const { track, isInitialized, sessionId, userId } = useTracking();
-```
+import { useEngageTrack } from "@engagetrack/react";
 
-#### Available Methods
+function SignupForm() {
+	const { trackReferralConversion } = useEngageTrack(config);
 
-##### Custom Events
-```tsx
-track.customEvent('video_watched', { 
-  videoId: 'intro-video',
-  duration: 120,
-  completed: true 
-});
-```
+	const handleSignup = () => {
+		// Track that the user signed up (conversion)
+		trackReferralConversion({
+			conversionType: "signup",
+			value: "free_trial",
+		});
+	};
 
-##### Page Events
-```tsx
-track.pageView('/custom-page', 'Custom Page Title');
-```
-
-##### User Interactions
-```tsx
-track.click('navigation-menu');
-track.buttonClick('subscribe-button', { plan: 'premium' });
-```
-
-##### Form Events
-```tsx
-track.formStart('contact-form');
-track.formSubmit('contact-form', { 
-  fields: ['name', 'email', 'message'],
-  source: 'contact-page' 
-});
-```
-
-##### Search Events
-```tsx
-track.search('react hooks', 42, { 
-  category: 'documentation',
-  filter: 'recent' 
-});
-```
-
-##### Download Events
-```tsx
-track.download('user-guide.pdf', 'pdf', { 
-  section: 'help-center' 
-});
-```
-
-##### Video Events
-```tsx
-track.videoPlay('product-demo', 300);
-track.videoPause('product-demo', 145);
-track.videoComplete('product-demo', 300);
-```
-
-##### E-commerce Events
-```tsx
-track.addToCart('prod-123', 'Premium T-Shirt', 29.99, {
-  category: 'clothing',
-  size: 'large',
-  color: 'blue'
-});
-
-track.purchase('order-456', 89.97, 'USD', {
-  items: 3,
-  paymentMethod: 'credit-card'
-});
-```
-
-##### Generic Events
-```tsx
-track.event('custom_event_type', { 
-  key: 'value',
-  timestamp: Date.now() 
-});
-```
-
-### useTrack Hook (Low-level)
-
-For direct access to the core tracking function:
-
-```tsx
-import { useTrack } from '@engagetrack/react';
-
-function MyComponent() {
-  const { track, isInitialized, sessionId, userId } = useTrack();
-  
-  const handleCustomEvent = () => {
-    track('CUSTOM_EVENT', {
-      customData: 'value',
-      timestamp: Date.now()
-    });
-  };
+	return <button onClick={handleSignup}>Sign Up</button>;
 }
+```
+
+## Configuration Options
+
+```typescript
+interface EngageTrackConfig {
+	siteId: string; // Required: Your site ID
+	domain: string; // Required: Your domain
+	serverUrl?: string; // API endpoint (default: localhost:5000)
+	wsUrl?: string; // WebSocket URL (auto-generated)
+	idleTimeout?: number; // Idle timeout in ms (default: 30000)
+	checkInterval?: number; // Activity check interval (default: 1000)
+	heartbeatInterval?: number; // WebSocket heartbeat (default: 30000)
+	maxReconnectAttempts?: number; // Max reconnection attempts (default: 5)
+	enableWebSocket?: boolean; // Enable WebSocket (default: true)
+	enableAutoTracking?: boolean; // Auto-track page views/clicks (default: true)
+	enableReferralTracking?: boolean; // Track referrals (default: true)
+	cookieDomain?: string; // Cookie domain override
+	cookieExpiry?: number; // Cookie expiry in days (default: 365)
+	debug?: boolean; // Enable debug logging (default: false)
+}
+```
+
+## Event Hooks
+
+You can listen to various events using the hooks parameter:
+
+```tsx
+const { track } = useEngageTrack(config, {
+	onTrackingEvent: (eventType, data) => {
+		console.log("Event tracked:", eventType, data);
+	},
+	onSessionStart: (sessionData) => {
+		console.log("Session started:", sessionData);
+	},
+	onSessionEnd: (sessionData) => {
+		console.log("Session ended:", sessionData);
+	},
+	onWebSocketConnect: () => {
+		console.log("WebSocket connected");
+	},
+	onWebSocketDisconnect: () => {
+		console.log("WebSocket disconnected");
+	},
+	onOnlineUsersUpdate: (users) => {
+		console.log("Online users updated:", users);
+	},
+	onReferralConversion: (referralData) => {
+		console.log("Referral conversion:", referralData);
+	},
+	onError: (error) => {
+		console.error("EngageTrack error:", error);
+	},
+});
+```
+
+## Available Event Types
+
+- `page_view` - Page view tracking
+- `page_load` - Page load event
+- `page_unload` - Page unload event
+- `page_hidden` - Page hidden (tab switch)
+- `user_click` - User click event
+- `idle_timeout` - User idle timeout
+- `session_start` - Session start
+- `session_end` - Session end
+- `referral_conversion` - Referral conversion
+- `custom_event` - Custom event
+
+## Advanced Usage
+
+### Manual Tracking Only
+
+```tsx
+const config: EngageTrackConfig = {
+	siteId: "your-site-id",
+	domain: "your-domain.com",
+	enableAutoTracking: false, // Disable automatic tracking
+	enableWebSocket: false, // Disable WebSocket
+};
+
+const { track } = useEngageTrack(config);
+
+// Manually track what you need
+track("page_view", { customData: "value" });
+```
+
+### Next.js Integration
+
+```tsx
+// pages/_app.tsx
+import { useEngageTrack } from "@engagetrack/react";
+import { useRouter } from "next/router";
+import { useEffect } from "react";
+
+function MyApp({ Component, pageProps }) {
+	const router = useRouter();
+	const { track } = useEngageTrack({
+		siteId: process.env.NEXT_PUBLIC_SITE_ID,
+		domain: process.env.NEXT_PUBLIC_DOMAIN,
+	});
+
+	useEffect(() => {
+		const handleRouteChange = (url) => {
+			track("page_view", { url });
+		};
+
+		router.events.on("routeChangeComplete", handleRouteChange);
+		return () => {
+			router.events.off("routeChangeComplete", handleRouteChange);
+		};
+	}, [router.events, track]);
+
+	return <Component {...pageProps} />;
+}
+```
+
+### Custom Event Tracking
+
+```tsx
+// Track e-commerce events
+const trackPurchase = (orderData) => {
+	track("purchase", {
+		orderId: orderData.id,
+		amount: orderData.total,
+		currency: orderData.currency,
+		items: orderData.items.map((item) => ({
+			id: item.id,
+			name: item.name,
+			price: item.price,
+			quantity: item.quantity,
+		})),
+	});
+};
+
+// Track user engagement
+const trackVideoWatch = (videoId, duration) => {
+	track("video_watch", {
+		videoId,
+		duration,
+		timestamp: Date.now(),
+	});
+};
+
+// Track form submissions
+const trackFormSubmission = (formName, fields) => {
+	track("form_submit", {
+		formName,
+		fields: Object.keys(fields),
+		timestamp: Date.now(),
+	});
+};
+```
+
+## Utility Functions
+
+The SDK exports several utility functions:
+
+```tsx
+import {
+	generateId,
+	setCookie,
+	getCookie,
+	getReferralData,
+	parseReferralParams,
+	detectReferralSource,
+} from "@engagetrack/react";
+
+// Generate a unique ID
+const uniqueId = generateId();
+
+// Work with cookies
+setCookie("custom_cookie", "value", 30); // 30 days
+const value = getCookie("custom_cookie");
+
+// Get referral information
+const referralData = getReferralData();
+const urlParams = parseReferralParams();
+const referralSource = detectReferralSource();
 ```
 
 ## TypeScript Support
 
-This package is written in TypeScript and includes full type definitions. You can import types for custom usage:
+Full TypeScript support is included with comprehensive type definitions:
 
-```tsx
-import { TrackingData, EventType, TrackingConfig } from '@engagetrack/react';
+```typescript
+import {
+	EngageTrackConfig,
+	EventType,
+	TrackingData,
+	SessionData,
+	OnlineUsersData,
+	ReferralData,
+} from "@engagetrack/react";
 
-interface CustomTrackingData extends TrackingData {
-  customField: string;
-  numericValue: number;
-}
+// Type-safe configuration
+const config: EngageTrackConfig = {
+	siteId: "site-123",
+	domain: "example.com",
+};
 
-const customData: CustomTrackingData = {
-  customField: 'example',
-  numericValue: 42
+// Type-safe event tracking
+const trackEvent = (eventType: EventType, data: TrackingData) => {
+	track(eventType, data);
 };
 ```
 
-## Advanced Usage
+## Privacy and GDPR Compliance
 
-### Conditional Tracking
+The SDK is designed with privacy in mind:
 
-```tsx
-function MyComponent() {
-  const { track, isInitialized } = useTracking();
-  
-  useEffect(() => {
-    if (isInitialized) {
-      track.pageView();
-    }
-  }, [isInitialized]);
-}
+- Only collects necessary analytics data
+- Respects user privacy settings
+- Supports opt-out mechanisms
+- Uses secure, same-site cookies
+- No third-party tracking
+
+To disable tracking:
+
+```javascript
+// Set this in localStorage to disable tracking
+localStorage.setItem("engageTrackDisabled", "true");
 ```
 
-### Custom Event Data
+## Development
 
-```tsx
-const trackWithContext = () => {
-  track.customEvent('feature_used', {
-    featureName: 'advanced-search',
-    userType: 'premium',
-    timestamp: Date.now(),
-    metadata: {
-      version: '2.1.0',
-      experiment: 'variant-a'
-    }
-  });
-};
+```bash
+# Install dependencies
+npm install
+
+# Build the package
+npm run build
+
+# Run tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Start development mode
+npm run dev
+
+# Run example
+npm run example
 ```
 
-### Error Handling
+## Contributing
 
-The tracker handles errors gracefully and will not throw exceptions that break your app. Failed requests are logged to the console in development.
-
-## Privacy and GDPR
-
-- Set `disabled={true}` to completely disable tracking
-- Use `localStorage.setItem('engageTrackDisabled', 'true')` for user preference
-- All tracking respects user privacy settings
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Submit a pull request
 
 ## License
 
-MIT
+MIT License - see LICENSE file for details
+
+## Support
+
+For issues and questions:
+
+- GitHub Issues: [github.com/engagetrack/react-sdk/issues](https://github.com/engagetrack/react-sdk/issues)
+- Documentation: [docs.engagetrack.com](https://docs.engagetrack.com)
+- Email: support@engagetrack.com

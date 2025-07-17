@@ -1,192 +1,145 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
-import { TrackingConfig, TrackingContextValue, TrackingData, EventType, TrackingPayload } from './types';
-import { TrackingUtils, ActivityTracker } from './utils';
+import React, {
+	createContext,
+	useContext,
+	useEffect,
+	useState,
+	ReactNode,
+	useCallback,
+} from "react";
+import { EngageTracker } from "./EngageTracker";
+import {
+	EngageTrackConfig,
+	EngageTrackContextType,
+	EventType,
+	TrackingData,
+	SessionData,
+	OnlineUsersData,
+	ReferralData,
+	EngageTrackHooks,
+} from "./types";
 
-const TrackingContext = createContext<TrackingContextValue | null>(null);
+const EngageTrackContext = createContext<EngageTrackContextType | null>(null);
 
-interface TrackerProviderProps {
-  children: ReactNode;
-  siteId: string;
-  domain?: string;
-  serverUrl?: string;
-  disabled?: boolean;
-  autoTrack?: boolean;
+export interface EngageTrackProviderProps {
+	children: ReactNode;
+	config: EngageTrackConfig;
+	hooks?: EngageTrackHooks;
 }
 
-export function TrackerProvider({
-  children,
-  siteId,
-  domain,
-  serverUrl = "http://localhost:5000/api/track",
-  disabled = false,
-  autoTrack = true
-}: TrackerProviderProps) {
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const activityTrackerRef = useRef<ActivityTracker | null>(null);
-  const startTimeRef = useRef<number>(Date.now());
+export const EngageTrackProvider: React.FC<EngageTrackProviderProps> = ({
+	children,
+	config,
+	hooks = {},
+}) => {
+	const [tracker, setTracker] = useState<EngageTracker | null>(null);
+	const [isInitialized, setIsInitialized] = useState(false);
+	const [sessionData, setSessionData] = useState<SessionData | null>(null);
+	const [onlineUsers, setOnlineUsers] = useState<OnlineUsersData | null>(null);
+	const [isConnected, setIsConnected] = useState(false);
 
-  const config: TrackingConfig = {
-    siteId,
-    domain,
-    serverUrl,
-    disabled
-  };
+	useEffect(() => {
+		if (typeof window === "undefined") return;
 
-  // Initialize tracking
-  useEffect(() => {
-    if (disabled || TrackingUtils.isDisabled()) {
-      console.warn("EngageTrack is disabled");
-      return;
-    }
+		const trackerHooks: EngageTrackHooks = {
+			...hooks,
+			onSessionStart: (session) => {
+				setSessionData(session);
+				hooks.onSessionStart?.(session);
+			},
+			onSessionEnd: (session) => {
+				setSessionData(null);
+				hooks.onSessionEnd?.(session);
+			},
+			onWebSocketConnect: () => {
+				setIsConnected(true);
+				hooks.onWebSocketConnect?.();
+			},
+			onWebSocketDisconnect: () => {
+				setIsConnected(false);
+				hooks.onWebSocketDisconnect?.();
+			},
+			onOnlineUsersUpdate: (users) => {
+				setOnlineUsers(users);
+				hooks.onOnlineUsersUpdate?.(users);
+			},
+		};
 
-    if (!siteId) {
-      console.error("Site ID is required for EngageTrack");
-      return;
-    }
+		try {
+			const trackerInstance = new EngageTracker(config, trackerHooks);
+			setTracker(trackerInstance);
+			setIsInitialized(true);
+		} catch (error) {
+			console.error("Failed to initialize EngageTracker:", error);
+			hooks.onError?.(error as Error);
+		}
 
-    if (!TrackingUtils.isValidProtocol()) {
-      console.warn("EngageTrack SDK is only supported on HTTP or HTTPS protocols.");
-      return;
-    }
+		return () => {
+			if (tracker) {
+				tracker.destroy();
+			}
+		};
+	}, [config.siteId, config.domain]); // Only re-initialize if core config changes
 
-    // Initialize session and user IDs
-    const existingSessionId = TrackingUtils.getCookie("session_id");
-    const existingUserId = TrackingUtils.getCookie("user_id");
+	const track = useCallback(
+		(eventType: EventType, data?: TrackingData) => {
+			if (tracker) {
+				tracker.track(eventType, data);
+			}
+		},
+		[tracker]
+	);
 
-    const newSessionId = existingSessionId || TrackingUtils.setCookie("session_id", TrackingUtils.generateId(), 1 / 48, domain);
-    const newUserId = existingUserId || TrackingUtils.setCookie("user_id", TrackingUtils.generateId(), 365, domain);
+	const trackReferralConversion = useCallback(
+		(data?: TrackingData) => {
+			if (tracker) {
+				tracker.trackReferralConversion(data);
+			}
+		},
+		[tracker]
+	);
 
-    setSessionId(newSessionId || null);
-    setUserId(newUserId || null);
-    setIsInitialized(true);
+	const getSessionData = useCallback(() => {
+		return tracker?.getSessionData() || null;
+	}, [tracker]);
 
-    console.log('EngageTrack initialized:', { userId: newUserId, sessionId: newSessionId });
-  }, [siteId, domain, disabled]);
+	const getReferralData = useCallback(() => {
+		return tracker?.getReferralData() || null;
+	}, [tracker]);
 
-  // Send tracking data to server
-  const sendTrackingData = useCallback(async (eventType: EventType, data: TrackingData = {}) => {
-    if (!isInitialized || disabled || !sessionId || !userId) {
-      return;
-    }
+	const reconnect = useCallback(() => {
+		if (tracker) {
+			tracker.reconnect();
+		}
+	}, [tracker]);
 
-    const payload: TrackingPayload = {
-      siteId,
-      eventType: eventType.toUpperCase(),
-      data: {
-        ...data,
-        sessionId,
-        userId,
-        userAgent: navigator.userAgent,
-        path: window.location.pathname,
-        referer: document.referrer || undefined,
-        title: document.title || undefined,
-      },
-      timestamp: new Date().toISOString(),
-    };
+	const contextValue: EngageTrackContextType = {
+		config,
+		isInitialized,
+		sessionData,
+		onlineUsers,
+		track,
+		trackReferralConversion,
+		getSessionData,
+		getReferralData,
+		isConnected,
+		reconnect,
+	};
 
-    try {
-      await fetch(serverUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-    } catch (error) {
-      console.error("Error sending tracking data:", error);
-    }
-  }, [isInitialized, disabled, sessionId, userId, siteId, serverUrl]);
+	return (
+		<EngageTrackContext.Provider value={contextValue}>
+			{children}
+		</EngageTrackContext.Provider>
+	);
+};
 
-  // Track function
-  const track = useCallback((eventType: EventType, data?: TrackingData) => {
-    sendTrackingData(eventType, data);
-  }, [sendTrackingData]);
+export const useEngageTrack = (): EngageTrackContextType => {
+	const context = useContext(EngageTrackContext);
 
-  // Auto-tracking setup
-  useEffect(() => {
-    if (!isInitialized || !autoTrack || disabled) {
-      return;
-    }
+	if (!context) {
+		throw new Error(
+			"useEngageTrack must be used within an EngageTrackProvider"
+		);
+	}
 
-    // Track page load
-    track('page_load', { timeSpent: 0 });
-
-    // Track page view
-    track('page_view', {
-      url: window.location.href,
-      title: document.title,
-      timeSpent: 0,
-    });
-
-    // Setup click tracking
-    const handleClick = (event: Event) => {
-      const target = event.target as HTMLElement;
-      track('user_click', {
-        url: window.location.href,
-        element: target.tagName || 'unknown',
-        timeSpent: Date.now() - startTimeRef.current,
-      });
-    };
-
-    document.addEventListener('click', handleClick);
-
-    // Setup activity tracking
-    const handleIdle = (timeSpent: number) => {
-      track('idle_timeout', { timeSpent });
-    };
-
-    const handleHidden = (timeSpent: number) => {
-      track('page_hidden', { timeSpent });
-    };
-
-    activityTrackerRef.current = new ActivityTracker(handleIdle, handleHidden);
-
-    // Setup page unload tracking
-    const handleUnload = () => {
-      track('page_unload', { timeSpent: Date.now() - startTimeRef.current });
-    };
-
-    window.addEventListener('pagehide', handleUnload);
-
-    // Cleanup
-    return () => {
-      document.removeEventListener('click', handleClick);
-      window.removeEventListener('pagehide', handleUnload);
-      if (activityTrackerRef.current) {
-        activityTrackerRef.current.destroy();
-      }
-    };
-  }, [isInitialized, autoTrack, disabled, track]);
-
-  const contextValue: TrackingContextValue = {
-    track,
-    config,
-    isInitialized,
-    sessionId,
-    userId,
-  };
-
-  return (
-    <TrackingContext.Provider value={contextValue}>
-      {children}
-    </TrackingContext.Provider>
-  );
-}
-
-export function useTrack() {
-  const context = useContext(TrackingContext);
-  
-  if (!context) {
-    throw new Error('useTrack must be used within a TrackerProvider');
-  }
-
-  return {
-    track: context.track,
-    isInitialized: context.isInitialized,
-    sessionId: context.sessionId,
-    userId: context.userId,
-    config: context.config,
-  };
-}
+	return context;
+};
