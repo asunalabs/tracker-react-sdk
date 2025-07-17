@@ -33,10 +33,6 @@ import { useEngageTrack, EngageTrackConfig } from "@engagetrack/react";
 const config: EngageTrackConfig = {
 	siteId: "your-site-id",
 	domain: "your-domain.com",
-	serverUrl: "http://localhost:5000/api/track",
-	enableWebSocket: true,
-	enableAutoTracking: true,
-	enableReferralTracking: true,
 };
 
 function App() {
@@ -101,18 +97,6 @@ function SignupForm() {
 interface EngageTrackConfig {
 	siteId: string; // Required: Your site ID
 	domain: string; // Required: Your domain
-	serverUrl?: string; // API endpoint (default: localhost:5000)
-	wsUrl?: string; // WebSocket URL (auto-generated)
-	idleTimeout?: number; // Idle timeout in ms (default: 30000)
-	checkInterval?: number; // Activity check interval (default: 1000)
-	heartbeatInterval?: number; // WebSocket heartbeat (default: 30000)
-	maxReconnectAttempts?: number; // Max reconnection attempts (default: 5)
-	enableWebSocket?: boolean; // Enable WebSocket (default: true)
-	enableAutoTracking?: boolean; // Auto-track page views/clicks (default: true)
-	enableReferralTracking?: boolean; // Track referrals (default: true)
-	cookieDomain?: string; // Cookie domain override
-	cookieExpiry?: number; // Cookie expiry in days (default: 365)
-	debug?: boolean; // Enable debug logging (default: false)
 }
 ```
 
@@ -170,8 +154,6 @@ const { track } = useEngageTrack(config, {
 const config: EngageTrackConfig = {
 	siteId: "your-site-id",
 	domain: "your-domain.com",
-	enableAutoTracking: false, // Disable automatic tracking
-	enableWebSocket: false, // Disable WebSocket
 };
 
 const { track } = useEngageTrack(config);
@@ -357,4 +339,4 @@ For issues and questions:
 
 - GitHub Issues: [github.com/engagetrack/react-sdk/issues](https://github.com/engagetrack/react-sdk/issues)
 - Documentation: [docs.engagetrack.com](https://docs.engagetrack.com)
-- Email: support@engagetrack.com
+- Email: support@asunalabs.com
